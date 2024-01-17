@@ -1,19 +1,29 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import _ from "lodash";
 import {sql} from "@vercel/postgres";
 
+import {Badge} from "@/components/ui/badge";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {getLastStateHistoryStaging, getStateHistoryIn} from "@/lib/api/indexer";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
-// async function saveStateIds(stateIds: string[]) {
-//   "use server";
-//   await sql`
-//     INSERT INTO diferences (name)
-//     VALUES ${stateIds.map((id) => `(${id})`).join(", ")}
-//   `;
-// }
+async function saveStateIds(stateIds: string) {
+  "use server";
+  const response = await sql`
+    INSERT INTO statehistory (StateId)
+    VALUES ${stateIds}
+  `;
+
+  return response;
+}
 
 export default async function Home() {
   const staging = await getLastStateHistoryStaging();
@@ -42,20 +52,50 @@ export default async function Home() {
   const equalsToMainnet = _.isEqual(staging, mainnet);
   const equalsToPreProd = _.isEqual(staging, pre_prod);
 
+  // const param = ["test", "test2"].map((id) => `(\'${id}\')`).join(", ");
+
+  // console.log(param);
+
+  // const res = await saveStateIds(param);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Result</CardTitle>
+        <CardTitle>State History Checker</CardTitle>
         <CardDescription>Timestamp: {lastStagingTimestamp}</CardDescription>
+        <CardDescription className="flex justify-start gap-3">
+          <Badge variant="outline">Production: {equalsToMainnet ? "🟢" : "🔴"}</Badge>
+          <Badge variant="outline">Pre-Prod: {equalsToPreProd ? "🟢" : "🔴"}</Badge>
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <pre className="rounded-sm bg-white/90 p-5 text-black">
-          equalsToMainnet: {JSON.stringify(equalsToMainnet, null, 2)}
-          equalsToPreProd: {JSON.stringify(equalsToPreProd, null, 2)}
-          {JSON.stringify(mainnet.length, null, 2)}
-          {JSON.stringify(pre_prod.length, null, 2)}
-          {JSON.stringify(staging.length, null, 2)}
-        </pre>
+        <h1 className="text-2xl">Result</h1>
+        <Accordion collapsible type="single">
+          <AccordionItem value="staging">
+            <AccordionTrigger>Staging</AccordionTrigger>
+            <AccordionContent>
+              <pre className="rounded-sm bg-white/90 p-5 text-black">
+                {JSON.stringify(staging, null, 2)}
+              </pre>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="pre-prod">
+            <AccordionTrigger>Pre-prod</AccordionTrigger>
+            <AccordionContent>
+              <pre className="rounded-sm bg-white/90 p-5 text-black">
+                {JSON.stringify(pre_prod, null, 2)}
+              </pre>
+            </AccordionContent>
+          </AccordionItem>
+          <AccordionItem value="prod">
+            <AccordionTrigger>Production</AccordionTrigger>
+            <AccordionContent>
+              <pre className="rounded-sm bg-white/90 p-5 text-black">
+                {JSON.stringify(mainnet, null, 2)}
+              </pre>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </CardContent>
     </Card>
   );
